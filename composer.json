@@ -17,5 +17,8 @@
         "psr-0": {
             "JuanF": "src/"
         }
+    },
+    "require": {
+        "predis/predis": "^1.1"
     }
 }

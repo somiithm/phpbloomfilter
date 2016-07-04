@@ -19,11 +19,14 @@
 
 namespace JuanF\Lib\Persistence;
 
+use Predis\Client;
+
 class Redis extends Persistence
 {
 
-    protected static $host = 'localhost';
+    protected static $host = '127.0.0.1';
     protected static $port = 6379;
+    /* @var $redisInstance Client*/
     protected static $redisInstance;
 
     /**
@@ -34,22 +37,19 @@ class Redis extends Persistence
      */
     public static function init($params = null)
     {
-        if ($params instanceof \Redis) {
-            self::$redisInstance = $params;
-        } elseif (is_array($params)) {
-            self::$host = isset($params['host']) ? $params['host'] : self::$host;
-            self::$port = isset($params['port']) ? $params['port'] : self::$port;
-        }
+        if(!(self::$redisInstance instanceof Client)){
+            if($params === null)
+                self::$redisInstance = new Client();
+            else{
+                if(isset($params['host'])) self::$host = $params['host'];
 
-        if (!(self::$redisInstance instanceof \Redis)) {
-            self::$redisInstance = new \Redis();
-            self::$redisInstance->connect(self::$host, self::$port);
-            self::$redisInstance->setOption(\Redis::OPT_SERIALIZER, \Redis::SERIALIZER_PHP);
+                if(isset($params['host'])) self::$port = $params['port'];
 
-            if (isset($params['options']) && count($params['options'])) {
-                foreach ($params['options'] as $key => $value) {
-                    self::$redisInstance->setOption($key, $value);
-                }
+                self::$redisInstance = new Client([
+                    'scheme'=>'tcp',
+                    'host'=>self::$host,
+                    'port'=>self::$port
+                ]);
             }
         }
 
@@ -65,10 +65,10 @@ class Redis extends Persistence
         $pipe = self::$redisInstance->pipeline();
 
         foreach ($bits as $bit) {
-            $pipe->getBit($key, $bit);
+            $pipe->getbit($key, $bit);
         }
 
-        return $pipe->exec();
+        return $pipe->execute();
     }
 
     /**
@@ -79,7 +79,7 @@ class Redis extends Persistence
     {
         $pipe = self::$redisInstance->pipeline();
 
-        $pipe->setBit($key, $bit, 1);
-        return $pipe->exec();
+        $pipe->setbit($key, $bit, 1);
+        return $pipe->execute();
     }
 }
